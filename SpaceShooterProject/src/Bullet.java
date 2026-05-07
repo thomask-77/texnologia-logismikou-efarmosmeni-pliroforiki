@@ -14,7 +14,7 @@ public class Bullet extends Entity {
         
         // Φόρτωση της εικόνας bullet.png
         try {
-            image = ImageIO.read(getClass().getResourceAsStream("/bullet.png"));
+            image = ImageIO.read(getClass().getResourceAsStream("/images/bullet.png"));
         } catch (IOException e) {
             System.out.println("Δεν βρέθηκε η εικόνα bullet.png!");
         }

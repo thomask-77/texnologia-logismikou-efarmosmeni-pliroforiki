@@ -12,7 +12,7 @@ public class Player extends Entity {
         super(x, y, 40, 40); 
         
         try {
-            image = ImageIO.read(getClass().getResourceAsStream("/player.png"));
+            image = ImageIO.read(getClass().getResourceAsStream("/images/player.png"));
         } catch (IOException e) {
             System.out.println("Δεν βρέθηκε η εικόνα player.png!");
         }

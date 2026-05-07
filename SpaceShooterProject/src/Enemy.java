@@ -14,7 +14,7 @@ public class Enemy extends Entity {
         
        
         try {
-            image = ImageIO.read(getClass().getResourceAsStream("/enemy.png"));
+            image = ImageIO.read(getClass().getResourceAsStream("/images/enemy.png"));
         } catch (IOException e) {
             System.out.println("Image enemy.png not found!");
             e.printStackTrace();

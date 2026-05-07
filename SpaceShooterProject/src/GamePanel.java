@@ -56,8 +56,8 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener, Mo
         random = new Random();
         
         try {
-            backgroundImage = ImageIO.read(getClass().getResourceAsStream("/background.png"));
-            titleImage = ImageIO.read(getClass().getResourceAsStream("/title.png"));
+            backgroundImage = ImageIO.read(getClass().getResourceAsStream("/images/background.png"));
+            titleImage = ImageIO.read(getClass().getResourceAsStream("/images/title.png"));
         } catch (IOException e) {
             System.out.println("Πρόβλημα στη φόρτωση των εικόνων!");
         }
@@ -376,7 +376,7 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener, Mo
     private void playLaserSound() {
         if (!isSoundEnabled) return; 
         try {
-            java.net.URL url = getClass().getResource("/laser.wav");
+            java.net.URL url = getClass().getResource("/sounds/laser.wav");
             AudioInputStream audioIn = AudioSystem.getAudioInputStream(url);
             Clip clip = AudioSystem.getClip();
             clip.open(audioIn);
