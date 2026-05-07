@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Random;
 import java.util.prefs.Preferences;
+import javax.sound.sampled.*;
 
 public class GamePanel extends JPanel implements ActionListener, KeyListener, MouseListener, MouseMotionListener {
     
@@ -15,7 +16,10 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener, Mo
     }
     private GameState currentState = GameState.MENU;
     private GameState lastState = GameState.MENU; 
-
+    
+    private boolean isSoundEnabled = true;
+    private int volume = 70; 
+    
     private Timer timer;
     private Player player;
     private ArrayList<Bullet> bullets;
@@ -106,7 +110,6 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener, Mo
         }
 
         if (random.nextInt(100) < currentSpawnChance) {
-            // score after 700 more enemies on sides
             int spawnRange = (score < 700) ? (int)(getWidth() * 0.3) : (int)(getWidth() * 0.9);
             int startX = (getWidth() / 2) - (spawnRange / 2);
             int randomX = startX + random.nextInt(Math.max(1, spawnRange - 30));
@@ -165,24 +168,18 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener, Mo
     private void drawMenu(Graphics g) {
         int centerX = getWidth() / 2;
         if (titleImage != null) g.drawImage(titleImage, centerX - 250, 20, 500, 180, null);
-        else {
-            g.setColor(Color.GREEN); g.setFont(new Font("Arial", Font.BOLD, 60));
-            g.drawString("SPACE SHOOTER", centerX - 250, 150);
-        }
         
-        // --- HIGH SCORE ΚΑΤΩ ΑΠΟ ΤΟΝ ΤΙΤΛΟ ---
         g.setColor(Color.YELLOW); 
         g.setFont(new Font("Arial", Font.BOLD, 22));
         String hsText = "High Score: " + highScore;
         int hsWidth = g.getFontMetrics().stringWidth(hsText);
         g.drawString(hsText, centerX - (hsWidth / 2), 235);
         
-        // --- ΚΟΥΜΠΙΑ (ΜΕΤΑΤΟΠΙΣΜΕΝΑ ΠΙΟ ΚΑΤΩ) ---
         g.setColor(Color.WHITE); drawButton(g, centerX - 150, 270, "PLAY");
-        g.setColor(Color.WHITE); drawButton(g, centerX - 150, 330, "OPTIONS");
-        g.setColor(Color.WHITE); drawButton(g, centerX - 150, 390, "CONTROLS");
-        g.setColor(Color.WHITE); drawButton(g, centerX - 150, 450, "ABOUT");
-        g.setColor(Color.WHITE); drawButton(g, centerX - 150, 510, "EXIT");
+        drawButton(g, centerX - 150, 330, "OPTIONS");
+        drawButton(g, centerX - 150, 390, "CONTROLS");
+        drawButton(g, centerX - 150, 450, "ABOUT");
+        drawButton(g, centerX - 150, 510, "EXIT");
     }
 
     private void drawDifficultyMenu(Graphics g) {
@@ -209,15 +206,13 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener, Mo
         g.drawString("Pause / Back: ESCAPE", centerX - 160, 380);
         g.setColor(Color.WHITE); drawButton(g, centerX - 150, 450, "BACK");
     }
-// ABOUT MENU
+
     private void drawAboutMenu(Graphics g) {
         g.setColor(new Color(0, 0, 0, 220)); 
         g.fillRect(0, 0, getWidth(), getHeight());
-        
         int centerX = getWidth() / 2;
         FontMetrics fm;
-
-       
+        
         g.setColor(Color.WHITE); 
         g.setFont(new Font("Arial", Font.BOLD, 50));
         fm = g.getFontMetrics();
@@ -227,22 +222,15 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener, Mo
         g.setFont(new Font("Arial", Font.PLAIN, 25));
         g.setColor(Color.LIGHT_GRAY);
         fm = g.getFontMetrics(); 
-
-  
+        
         String s1 = "Space Shooter Retro";
         g.drawString(s1, centerX - (fm.stringWidth(s1) / 2), 230);
-
-  
         String beta = "Beta Version 0.0.3";
         g.drawString(beta, centerX - (fm.stringWidth(beta) / 2), 280);
-
-        
         String s2 = "Created for University of Macedonia";
         g.drawString(s2, centerX - (fm.stringWidth(s2) / 2), 330);
         
-        // BACK
-        g.setColor(Color.WHITE); 
-        drawButton(g, centerX - 150, 450, "BACK");
+        g.setColor(Color.WHITE); drawButton(g, centerX - 150, 450, "BACK");
     }
 
     private void drawGame(Graphics g) {
@@ -260,24 +248,34 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener, Mo
         g.setColor(Color.WHITE); g.setFont(new Font("Arial", Font.BOLD, 50));
         g.drawString("PAUSED", centerX - 100, 150);
         g.setColor(Color.WHITE); drawButton(g, centerX - 150, 220, "RESUME");
-        g.setColor(Color.WHITE); drawButton(g, centerX - 150, 290, "OPTIONS");
-        g.setColor(Color.WHITE); drawButton(g, centerX - 150, 360, "RESTART");
-        g.setColor(Color.WHITE); drawButton(g, centerX - 150, 430, "MAIN MENU");
+        drawButton(g, centerX - 150, 290, "OPTIONS");
+        drawButton(g, centerX - 150, 360, "RESTART");
+        drawButton(g, centerX - 150, 430, "MAIN MENU");
     }
 
     private void drawOptionsMenu(Graphics g) {
-        g.setColor(new Color(0, 0, 0, 220)); g.fillRect(0, 0, getWidth(), getHeight());
+        g.setColor(new Color(0, 0, 0, 230)); g.fillRect(0, 0, getWidth(), getHeight());
         int centerX = getWidth() / 2;
         g.setColor(Color.WHITE); g.setFont(new Font("Arial", Font.BOLD, 50));
-        g.drawString("OPTIONS", centerX - 120, 150);
-        g.setFont(new Font("Arial", Font.BOLD, 25));
-        g.drawString("Player Speed: " + player.getSpeed(), centerX - 100, 250);
-        int sliderX = centerX - 150; int sliderY = 280; int sliderW = 300; int sliderH = 30;
-        g.setColor(Color.DARK_GRAY); g.fillRect(sliderX, sliderY, sliderW, sliderH);
-        double percentage = (double)(player.getSpeed() - 3) / (15 - 3);
-        g.setColor(Color.GREEN); g.fillRect(sliderX, sliderY, (int)(sliderW * percentage), sliderH);
-        g.setColor(Color.WHITE); g.drawRect(sliderX, sliderY, sliderW, sliderH);
-        g.setColor(Color.WHITE); drawButton(g, centerX - 150, 400, "BACK");
+        g.drawString("OPTIONS", centerX - 120, 100);
+
+        g.setFont(new Font("Arial", Font.BOLD, 20));
+        
+        g.drawString("Player Speed: " + player.getSpeed(), centerX - 150, 180);
+        drawSlider(g, centerX - 150, 200, (player.getSpeed() - 3) / 12.0);
+
+        g.drawString("Volume: " + volume + "%", centerX - 150, 280);
+        drawSlider(g, centerX - 150, 300, volume / 100.0);
+
+        g.drawString("Sound Effects:", centerX - 150, 380);
+        g.drawRect(centerX + 50, 360, 30, 30);
+        if (isSoundEnabled) {
+            g.setColor(Color.GREEN);
+            g.fillRect(centerX + 55, 365, 21, 21);
+            g.setColor(Color.WHITE);
+        }
+
+        drawButton(g, centerX - 150, 480, "BACK");
     }
 
     private void drawGameOver(Graphics g) {
@@ -289,15 +287,16 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener, Mo
         g.setColor(Color.YELLOW); g.setFont(new Font("Arial", Font.BOLD, 20));
         g.drawString("High Score: " + highScore, centerX - 75, 260);
         g.setColor(Color.WHITE); drawButton(g, centerX - 150, 320, "RESTART");
-        g.setColor(Color.WHITE); drawButton(g, centerX - 150, 390, "MAIN MENU");
+        drawButton(g, centerX - 150, 390, "MAIN MENU");
     }
 
     private void drawButton(Graphics g, int x, int y, String text) {
-        Color textColor = g.getColor(); 
+        Color current = g.getColor();
         g.setColor(Color.DARK_GRAY); g.fillRect(x, y, 300, 50);
-        g.setColor(textColor); g.drawRect(x, y, 300, 50);
+        g.setColor(current); g.drawRect(x, y, 300, 50);
         g.setFont(new Font("Arial", Font.BOLD, 25));
-        int textX = x + 150 - (text.length() * 7); g.drawString(text, textX, y + 35);
+        int textX = x + 150 - (g.getFontMetrics().stringWidth(text) / 2); 
+        g.drawString(text, textX, y + 35);
     }
 
     @Override
@@ -326,7 +325,11 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener, Mo
             else if (isInside(mx, my, centerX - 150, 430, 300, 50)) currentState = GameState.MENU; 
         } 
         else if (currentState == GameState.OPTIONS) {
-            if (isInside(mx, my, centerX - 150, 400, 300, 50)) currentState = lastState;
+            if (isInside(mx, my, centerX - 150, 480, 300, 50)) currentState = lastState;
+            if (isInside(mx, my, centerX + 50, 360, 30, 30)) { 
+                isSoundEnabled = !isSoundEnabled; 
+                if(isSoundEnabled) playLaserSound(); 
+            }
         } 
         else if (currentState == GameState.GAMEOVER) {
             if (isInside(mx, my, centerX - 150, 320, 300, 50)) { initGame(); currentState = GameState.PLAYING; }
@@ -334,16 +337,22 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener, Mo
         }
     }
 
-    private void updateSliderLogic(int mx) {
-        int centerX = getWidth() / 2; int sliderX = centerX - 150;
-        mx = Math.max(sliderX, Math.min(mx, sliderX + 300));
-        double pct = (double)(mx - sliderX) / 300;
-        player.setSpeed(3 + (int)(pct * 12));
+    private void updateSliderLogic(int mx, int my) {
+        int centerX = getWidth() / 2;
+        int sliderX = centerX - 150;
+        if (my >= 190 && my <= 230) { 
+            mx = Math.max(sliderX, Math.min(mx, sliderX + 300));
+            player.setSpeed(3 + (int)(((double)(mx - sliderX) / 300) * 12));
+        }
+        if (my >= 290 && my <= 330) { 
+            mx = Math.max(sliderX, Math.min(mx, sliderX + 300));
+            volume = (int)(((double)(mx - sliderX) / 300) * 100);
+        }
         repaint();
     }
 
-    @Override public void mousePressed(MouseEvent e) { if (currentState == GameState.OPTIONS && e.getY() >= 270 && e.getY() <= 320) updateSliderLogic(e.getX()); }
-    @Override public void mouseDragged(MouseEvent e) { if (currentState == GameState.OPTIONS && e.getY() >= 260 && e.getY() <= 330) updateSliderLogic(e.getX()); }
+    @Override public void mousePressed(MouseEvent e) { if (currentState == GameState.OPTIONS) updateSliderLogic(e.getX(), e.getY()); }
+    @Override public void mouseDragged(MouseEvent e) { if (currentState == GameState.OPTIONS) updateSliderLogic(e.getX(), e.getY()); }
     private boolean isInside(int mx, int my, int x, int y, int w, int h) { return (mx >= x && mx <= x + w && my >= y && my <= y + h); }
     @Override public void mouseReleased(MouseEvent e) {} @Override public void mouseEntered(MouseEvent e) {} @Override public void mouseExited(MouseEvent e) {} @Override public void mouseMoved(MouseEvent e) {}
 
@@ -357,19 +366,31 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener, Mo
             else if (currentState == GameState.DIFFICULTY_SELECT || currentState == GameState.ABOUT || currentState == GameState.CONTROLS) currentState = GameState.MENU;
         }
         if (currentState == GameState.MENU && key == KeyEvent.VK_ENTER) currentState = GameState.DIFFICULTY_SELECT; 
-        else if (currentState == GameState.DIFFICULTY_SELECT) {
-            if (key == KeyEvent.VK_1) { baseEnemySpeed = 2; baseSpawnChance = 3; initGame(); currentState = GameState.PLAYING; }
-            if (key == KeyEvent.VK_2) { baseEnemySpeed = 3; baseSpawnChance = 5; initGame(); currentState = GameState.PLAYING; }
-            if (key == KeyEvent.VK_3) { baseEnemySpeed = 5; baseSpawnChance = 8; initGame(); currentState = GameState.PLAYING; }
-        }
         else if (currentState == GameState.PLAYING) {
             if (key == KeyEvent.VK_LEFT) leftPressed = true; if (key == KeyEvent.VK_RIGHT) rightPressed = true;
-            if (key == KeyEvent.VK_SPACE) bullets.add(new Bullet(player.getX() - 3, player.getY()));
+            if (key == KeyEvent.VK_SPACE) { bullets.add(new Bullet(player.getX() - 3, player.getY())); playLaserSound(); }
         } 
-        else if (currentState == GameState.GAMEOVER) {
-            if (key == KeyEvent.VK_ENTER) { initGame(); currentState = GameState.PLAYING; }
-            else if (key == KeyEvent.VK_M) currentState = GameState.MENU;
-        }
+        else if (currentState == GameState.GAMEOVER && key == KeyEvent.VK_ENTER) { initGame(); currentState = GameState.PLAYING; }
+    }
+    
+    private void playLaserSound() {
+        if (!isSoundEnabled) return; 
+        try {
+            java.net.URL url = getClass().getResource("/laser.wav");
+            AudioInputStream audioIn = AudioSystem.getAudioInputStream(url);
+            Clip clip = AudioSystem.getClip();
+            clip.open(audioIn);
+            FloatControl gainControl = (FloatControl) clip.getControl(FloatControl.Type.MASTER_GAIN);
+            float range = gainControl.getMaximum() - gainControl.getMinimum();
+            gainControl.setValue((range * (volume / 100.0f)) + gainControl.getMinimum());
+            clip.start();
+        } catch (Exception e) { System.out.println("Sound error: " + e.getMessage()); }
+    }
+    
+    private void drawSlider(Graphics g, int x, int y, double percentage) {
+        g.setColor(Color.DARK_GRAY); g.fillRect(x, y, 300, 20);
+        g.setColor(Color.GREEN); g.fillRect(x, y, (int)(300 * percentage), 20);
+        g.setColor(Color.WHITE); g.drawRect(x, y, 300, 20);
     }
 
     @Override public void keyReleased(KeyEvent e) { if (e.getKeyCode() == KeyEvent.VK_LEFT) leftPressed = false; if (e.getKeyCode() == KeyEvent.VK_RIGHT) rightPressed = false; }
