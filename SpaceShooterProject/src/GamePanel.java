@@ -1,13 +1,15 @@
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
+import java.awt.image.BufferedImage;
+import javax.imageio.ImageIO;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Random;
 import java.util.prefs.Preferences;
 
 public class GamePanel extends JPanel implements ActionListener, KeyListener, MouseListener {
     
-    // Προσθέσαμε το PAUSED στις καταστάσεις
     private enum GameState {
         MENU, PLAYING, PAUSED, GAMEOVER
     }
@@ -28,9 +30,13 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener, Mo
     private int currentEnemySpeed = 3;
     private int currentSpawnChance = 5;
 
+    // --- ΕΙΚΟΝΕΣ ---
+    private BufferedImage backgroundImage;
+    private BufferedImage titleImage; // Νέα μεταβλητή για το Logo
+    private int bgY = 0; 
+
     public GamePanel() {
         this.setPreferredSize(new Dimension(800, 600));
-        this.setBackground(Color.BLACK);
         this.setFocusable(true);
         
         this.addKeyListener(this);
@@ -40,6 +46,15 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener, Mo
         highScore = prefs.getInt("highscore", 0);
 
         random = new Random();
+        
+        // ΦΟΡΤΩΣΗ ΕΙΚΟΝΩΝ
+        try {
+            backgroundImage = ImageIO.read(getClass().getResourceAsStream("/background.png"));
+            titleImage = ImageIO.read(getClass().getResourceAsStream("/title.png"));
+        } catch (IOException e) {
+            System.out.println("Πρόβλημα στη φόρτωση των εικόνων!");
+        }
+
         initGame();
 
         timer = new Timer(16, this);
@@ -59,7 +74,12 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener, Mo
 
     @Override
     public void actionPerformed(ActionEvent e) {
-        // Το update γίνεται ΜΟΝΟ όταν παίζουμε
+        // Κίνηση Φόντου
+        if (currentState != GameState.PAUSED) { 
+            bgY += 1; 
+            if (bgY >= 1200) bgY = 0; 
+        }
+
         if (currentState == GameState.PLAYING) {
             updateGame();
             checkCollisions();
@@ -121,24 +141,35 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener, Mo
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
 
+        // ΖΩΓΡΑΦΙΚΗ ΦΟΝΤΟΥ (Με καθρέφτισμα)
+        if (backgroundImage != null) {
+            g.drawImage(backgroundImage, 0, bgY, 800, 600, null);
+            g.drawImage(backgroundImage, 0, bgY, 800, -600, null); 
+            g.drawImage(backgroundImage, 0, bgY - 1200, 800, 600, null); 
+        }
+
         if (currentState == GameState.MENU) {
             drawMenu(g);
         } else if (currentState == GameState.PLAYING || currentState == GameState.PAUSED) {
             drawGame(g);
-            if (currentState == GameState.PAUSED) {
-                drawPauseMenu(g);
-            }
+            if (currentState == GameState.PAUSED) drawPauseMenu(g);
         } else if (currentState == GameState.GAMEOVER) {
             drawGameOver(g);
         }
     }
 
-    // --- Βοηθητικές μέθοδοι ζωγραφικής για καθαρό κώδικα ---
-    
     private void drawMenu(Graphics g) {
-        g.setColor(Color.GREEN);
-        g.setFont(new Font("Arial", Font.BOLD, 60));
-        g.drawString("SPACE SHOOTER", 140, 200);
+        if (titleImage != null) {
+            // ΖΩΓΡΑΦΙΖΕΙ ΤΗΝ ΕΙΚΟΝΑ ΤΟΥ ΤΙΤΛΟΥ
+            // x:150 (κεντραρισμένο), y:50, πλάτος:500, ύψος:200 (μπορείς να τα αλλάξεις)
+            g.drawImage(titleImage, 150, 50, 500, 200, null);
+        } else {
+            // Plan B: Αν δεν βρει την εικόνα, γράφει το παλιό κείμενο
+            g.setColor(Color.GREEN);
+            g.setFont(new Font("Arial", Font.BOLD, 60));
+            g.drawString("SPACE SHOOTER", 140, 200);
+        }
+        
         drawButton(g, 250, 300, "PLAY");
         g.setColor(Color.YELLOW);
         g.setFont(new Font("Arial", Font.BOLD, 20));
@@ -157,14 +188,11 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener, Mo
     }
 
     private void drawPauseMenu(Graphics g) {
-        // Ημιδιαφανές φόντο
         g.setColor(new Color(0, 0, 0, 150));
         g.fillRect(0, 0, 800, 600);
-        
         g.setColor(Color.WHITE);
         g.setFont(new Font("Arial", Font.BOLD, 50));
         g.drawString("PAUSED", 300, 150);
-        
         drawButton(g, 250, 220, "RESUME");
         drawButton(g, 250, 290, "RESTART");
         drawButton(g, 250, 360, "MAIN MENU");
@@ -187,7 +215,6 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener, Mo
         g.setColor(Color.WHITE);
         g.drawRect(x, y, 300, 50);
         g.setFont(new Font("Arial", Font.BOLD, 25));
-        // Κεντράρισμα κειμένου (στο περίπου)
         int textX = x + 150 - (text.length() * 7); 
         g.drawString(text, textX, y + 35);
     }
@@ -198,15 +225,12 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener, Mo
         int my = e.getY(); 
 
         if (currentState == GameState.MENU) {
-            if (isInside(mx, my, 250, 300, 300, 50)) {
-                initGame();
-                currentState = GameState.PLAYING;
-            }
+            if (isInside(mx, my, 250, 300, 300, 50)) { initGame(); currentState = GameState.PLAYING; }
         } 
         else if (currentState == GameState.PAUSED) {
-            if (isInside(mx, my, 250, 220, 300, 50)) currentState = GameState.PLAYING; // Resume
-            else if (isInside(mx, my, 250, 290, 300, 50)) { initGame(); currentState = GameState.PLAYING; } // Restart
-            else if (isInside(mx, my, 250, 360, 300, 50)) currentState = GameState.MENU; // Main Menu
+            if (isInside(mx, my, 250, 220, 300, 50)) currentState = GameState.PLAYING; 
+            else if (isInside(mx, my, 250, 290, 300, 50)) { initGame(); currentState = GameState.PLAYING; } 
+            else if (isInside(mx, my, 250, 360, 300, 50)) currentState = GameState.MENU; 
         }
         else if (currentState == GameState.GAMEOVER) {
             if (isInside(mx, my, 250, 300, 300, 50)) { initGame(); currentState = GameState.PLAYING; }
@@ -226,20 +250,17 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener, Mo
     @Override
     public void keyPressed(KeyEvent e) {
         int key = e.getKeyCode();
-
-        // Έλεγχος για ESCAPE σε οποιαδήποτε φάση του παιχνιδιού
         if (key == KeyEvent.VK_ESCAPE) {
             if (currentState == GameState.PLAYING) currentState = GameState.PAUSED;
             else if (currentState == GameState.PAUSED) currentState = GameState.PLAYING;
         }
-
         if (currentState == GameState.MENU) {
             if (key == KeyEvent.VK_ENTER) { initGame(); currentState = GameState.PLAYING; }
         } 
         else if (currentState == GameState.PLAYING) {
             if (key == KeyEvent.VK_LEFT) leftPressed = true;
             if (key == KeyEvent.VK_RIGHT) rightPressed = true;
-            if (key == KeyEvent.VK_SPACE) bullets.add(new Bullet(player.getX() + 17, player.getY()));
+            if (key == KeyEvent.VK_SPACE) bullets.add(new Bullet(player.getX() - 3, player.getY()));
         } 
         else if (currentState == GameState.GAMEOVER) {
             if (key == KeyEvent.VK_ENTER) { initGame(); currentState = GameState.PLAYING; }
